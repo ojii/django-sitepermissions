@@ -47,7 +47,7 @@ class V(object):
         return all([v(admin, request, form, **data) for v in self.and_validators])
 
 
-def m2m_validator(fieldname):
+def strict_m2m_validator(fieldname):
     """
     Validates a M2M to the sites.Site model using 'fieldname'
     """
@@ -57,6 +57,15 @@ def m2m_validator(fieldname):
         for site in sites:
             if not user.groups.filter(sitegroup__sites=site).count():
                 return form.invalid_form(sites=["You do not have the rights to add news for this site: %s" % site])
+        return True
+    return validate_form
+
+def permissive_m2m_validator(fieldname):
+    def validate_form(admin, request, form, **data):
+        user = request.user
+        sites = data[fieldname]
+        if not user.groups.filter(sitegroup__sites__in=sites).count():
+            return form.invalid_form(sites=["You do not have the rights to add news for any of these sites: %s" % sites])
         return True
     return validate_form
 

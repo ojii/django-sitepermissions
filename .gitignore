@@ -1,3 +1,5 @@
 *.pyc
+django_sitepermissions.egg-info
+dist
 .pydevproject
 .project
