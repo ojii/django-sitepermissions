@@ -1,4 +1,6 @@
-from django.core.exceptions import NON_FIELD_ERRORS
+from django.utils.translation import ugettext_lazy as _
+
+from django.forms.forms import NON_FIELD_ERRORS
 from django.forms.util import ErrorDict
 
 
@@ -46,6 +48,17 @@ class V(object):
         form.cleaned_data = frozendata
         return all([v(admin, request, form, **data) for v in self.and_validators])
 
+def strict_fk_validator(fieldname):
+    """
+    Validates a ForeignKey to the sites.Site model using 'fieldname'
+    """
+    def validate_form(admin, request, form, **data):
+        user = request.user
+        site = data[fieldname]
+        if not user.groups.filter(sitegroup__sites=site).count():
+            return form.invalid_form(**{fieldname:[_("You do not have the rights to add references for this site: %s" % site)]})
+        return True
+    return validate_form
 
 def strict_m2m_validator(fieldname):
     """
@@ -56,7 +69,7 @@ def strict_m2m_validator(fieldname):
         sites = data[fieldname]
         for site in sites:
             if not user.groups.filter(sitegroup__sites=site).count():
-                return form.invalid_form(sites=["You do not have the rights to add news for this site: %s" % site])
+                return form.invalid_form(**{fieldname:[_("You do not have the rights to add news for this site: %s" % site)]})
         return True
     return validate_form
 
@@ -65,7 +78,7 @@ def permissive_m2m_validator(fieldname):
         user = request.user
         sites = data[fieldname]
         if not user.groups.filter(sitegroup__sites__in=sites).count():
-            return form.invalid_form(sites=["You do not have the rights to add news for any of these sites: %s" % sites])
+            return form.invalid_form(**{fieldname:[_("You do not have the rights to add news for any of these sites: %s" % sites)]})
         return True
     return validate_form
 
@@ -90,7 +103,7 @@ def permission_validator(permcode):
     def validate_form(admin, request, form, **data):
         if request.user.has_perm(permcode):
             return True
-        form.invalid_form(**{NON_FIELD_ERRORS: ["You don't have the required permission: %s" % permcode]})
+        form.invalid_form(**{NON_FIELD_ERRORS: [_("You don't have the required permission: %s" % permcode)]})
         return False
     return validate_form
 
